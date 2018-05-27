@@ -20,13 +20,14 @@ import qualified Raytrace.Websocket as RTWebsocket
 type WSMVar = MVar RTWebsocket.WSMessage
 type WSDict = Map.Map Int WSMVar
 
+-- Daemon terminate handler
 onQuit :: Either SomeException () -> IO ()
 onQuit (Left err) = do
   putStrLn "Daemon terminated with error."
   putStrLn $ show err
 onQuit (Right _) = putStrLn "Daemon terminated successfully."
 
-
+-- Daemon entry point
 main :: RTWebsocket.WSData -> IO ()
 main (RTWebsocket.WSData (conn, registerChan)) = do
   -- Make mutable instances
@@ -48,6 +49,8 @@ main (RTWebsocket.WSData (conn, registerChan)) = do
           then sendProcessFinish dictRef id
           else sendProcessFail dictRef id
 
+
+-- Subprocess which handles new request
 dictSetter :: IORef WSDict -> IORef Int -> Chan WSMVar -> IO ()
 dictSetter dictRef idRef chan = do
   forever $ do

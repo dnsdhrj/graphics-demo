@@ -24,4 +24,4 @@ cabal.project.local~
 data/
 *.log
 .ghci
-
+graphics-demo.cabal

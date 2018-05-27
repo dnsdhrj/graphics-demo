@@ -19,6 +19,9 @@ config =
   setPort 3333 .
   setDefaultTimeout 2 $ emptyConfig
 
+-- 'Raytrace.Websocket.WSData' is mutable IPC object. (between Daemon and Server)
+-- 'Raytrace.Daemon' receives input, runs raytrace assignment program, and send image file ID.
+-- 'simpleHttpServe' serves HTTP request.
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering -- For debugging

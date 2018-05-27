@@ -15,8 +15,9 @@ import qualified Data.ByteString.Lazy.Char8 as LBC
 import qualified Raytrace.MessageQueue as MessageQueue
 import qualified Raytrace.RTConfigCreator as RTConfigCreator
 
-
+-- IPC object between daemon and websocket process
 data WSData = WSData (MessageQueue.DBConnection, Chan (MVar WSMessage))
+
 data WSMessage =
     MessageId Int       -- message created (with id)
   | RemainingQueue Int  -- number of request in front of this
@@ -34,6 +35,7 @@ initWSData = do
   chan <- newChan
   return $ WSData (conn, chan)
 
+-- Websocket entry point
 websocketApp :: WSData -> WS.ServerApp
 websocketApp wsdata pending = do
   conn <- WS.acceptRequest pending
@@ -48,20 +50,22 @@ websocketApp wsdata pending = do
       _ <- forkIO (catchConnError wsdata id $ doProxy conn messageMVar)
       catchConnError wsdata id $ ping conn
 
+-- Receive ping from client
 ping :: WS.Connection -> IO ()
 ping conn = do
   forever $ do
     WS.receive conn
-    --WS.sendPing conn (LBC.pack "ping")
     threadDelay (10 * 10^6)
 
 ---- Minor functions ----
 
+-- Connection error wrapper & handler
 catchConnError :: WSData -> Int -> IO a -> IO a
 catchConnError wsdata id work = catch work (handler wsdata id) where
   handler :: WSData -> Int -> WS.ConnectionException -> IO a
   handler wsdata id e = unregisterEvent wsdata id >> throw (WSException "client closed")
 
+-- Timeout setter wrapper
 timeoutWrapper :: Int -> IO a -> IO a
 timeoutWrapper time obj = do
   result <- timeout (time * 10^6) obj
@@ -102,6 +106,7 @@ unregisterEvent (WSData (dbconn, _)) id = do
     Just True -> putStrLn ("Job #" ++ show id ++ " dequeued.") >> return ()
     Just False -> return () -- TODO terminate running process
 
+-- Receive daemon message, and send it to client
 doProxy :: WS.Connection -> MVar WSMessage -> IO ()
 doProxy conn messageMVar = do
   WS.forkPingThread conn 5
@@ -113,12 +118,14 @@ doProxy conn messageMVar = do
     ProcessFinished id -> send conn ("Finished: " ++ show id) >> WS.sendClose conn (LBC.pack "end")
     ProcessFailed -> send conn ("Finished: -1") >> WS.sendClose conn (LBC.pack "endfail")
 
+-- Send close request to client
 closeRequest :: WS.Connection -> IO ()
 closeRequest conn = do
   WS.sendClose conn (LBC.pack "end") 
   _ <- timeoutWrapper 1 $ WS.receiveDataMessage conn
   return ()
 
+-- Send string to client
 send :: WS.Connection -> String -> IO ()
 send conn msg = WS.sendTextData conn $ LBC.pack msg
 

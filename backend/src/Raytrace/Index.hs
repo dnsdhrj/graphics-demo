@@ -7,6 +7,7 @@ import qualified Network.WebSockets.Snap as WS
 
 import qualified Raytrace.Websocket as RTWebsocket
 
+-- Snap entry point for URL 'raytrace/'
 site :: RTWebsocket.WSData -> Snap ()
 site wsdata =
   -- Image will be served by NGINX

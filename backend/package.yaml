@@ -1,0 +1,55 @@
+name:                graphics-demo
+version:             0.1.0.0
+github:              "dnsdhrj/graphics-demo"
+license:             MIT
+author:              "dnsdhrj"
+maintainer:          "dnsdhrj123@gmail.com"
+copyright:           "Copyright (c) 2018 SoonHo Seo"
+
+extra-source-files:
+- README.md
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/dnsdhrj/graphics-demot#readme>
+
+dependencies:
+  - base                      >= 4.7   && < 5
+  - bytestring                >= 0.9.1 && < 0.11
+  - mtl                       >= 2     && < 3
+  - snap-core                 >= 1.0   && < 1.1
+  - snap-server               >= 1.0   && < 1.1
+  - process
+  - text
+  - time
+  - aeson
+  - containers
+  - websockets
+  - websockets-snap
+  - postgresql-simple
+
+library:
+  source-dirs: lib
+
+executables:
+  graphics-demo-exe:
+    main:                Main.hs
+    source-dirs:         src
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - graphics-demo
+
+tests:
+  graphics-demo-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - graphics-demo

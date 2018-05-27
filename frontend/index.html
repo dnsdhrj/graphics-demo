@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <title>Raytrace testing page</title>
+    </head>
+    <body>
+        <form>
+            Scene : <select id="sceneNo">
+                <option value="1">Orange Box</option>
+                <option value="2">Human and table</option>
+                <option value="3">Depth of field test</option>
+            </select><br/>
+            Resolution : <input type="range" min="1" max="100" value="100" id="resolution"/> <br/>
+            Area light     : <input type="checkbox" value="false" id="areaLight"/> <br/>
+            Anti-aliasing  : <input type="checkbox" value="false" id="antiAliasing"/> <br/>
+            Depth of field : <input type="checkbox" value="false" id="dofToggle"/> <br/>
+            &nbsp;&nbsp;DOF Aperture : less <input type="range" min="1.0" max="50.0" value="25" id="dofAperture"/> more <br/>
+            &nbsp;&nbsp;DOF Focus    : near <input type="range" min="1" max="600" value="300" id="dofFocus"/> far <br/>  
+        </form>
+        <button onclick="onClick()" ontouchend="onClick()">Submit!</button>
+        <p>Smaller resolution == Faster result</p>
+        <p id="status">All additional options takes 9x time each...</p>
+        <img src="" alt="" id="image" height="70%">
+        <script>
+            var ws = null;
+
+            setInterval(function() {
+                if (ws !== null) ws.send("ping");
+            }, 1000);
+
+            function onClick() {
+                if (ws !== null) return;
+
+                var data = {
+                    jittering: false
+                };
+                data.sceneNo = parseInt(document.getElementById("sceneNo").value);
+                data.areaLight = document.getElementById("areaLight").checked;
+                data.antiAliasing = document.getElementById("antiAliasing").checked;
+                data.dofToggle = document.getElementById("dofToggle").checked;
+                data.dofAperture = parseFloat(document.getElementById("dofAperture").value);
+                data.dofFocus = parseInt(document.getElementById("dofFocus").value);
+                data.pixelWidth = data.pixelHeight = parseInt(document.getElementById("resolution").value) * 4;
+                if (data.sceneNo === 2)
+                    data.pixelHeight = Math.floor(data.pixelHeight * 9 / 16);
+                    
+                var addr = window.location.toString().replace("http", "ws") + "raytrace/wait/";
+                document.getElementById("status").innerHTML = "Connecting " + addr + "...";
+
+                ws = new WebSocket(addr);
+                ws.onopen = function() {
+                    ws.send(JSON.stringify(data));
+                }
+                ws.onmessage = function(e) {
+                    var message = e.data;
+                    if(message === "ping") return;
+                    if(message.startsWith("Finished")) {
+                        document.getElementById("status").innerHTML = "";
+                        imageNo = message.split(" ")[1];
+                        document.getElementById("image").src = "/raytrace/" + imageNo + ".png";
+                        ws.close();
+                    }
+                    else {
+                        document.getElementById("status").innerHTML = message;
+                    }
+                }
+                ws.onclose = function() {
+                    ws = null;
+                }
+            }
+        </script>
+    </body>
+</html>

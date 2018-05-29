@@ -3,6 +3,7 @@
         <title>Raytrace testing page</title>
     </head>
     <body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.1/moment.min.js"></script>
         <form>
             Scene : <select id="sceneNo">
                 <option value="1">Orange Box</option>
@@ -16,16 +17,38 @@
             &nbsp;&nbsp;DOF Aperture : less <input type="range" min="1.0" max="50.0" value="25" id="dofAperture"/> more <br/>
             &nbsp;&nbsp;DOF Focus    : near <input type="range" min="1" max="600" value="300" id="dofFocus"/> far <br/>  
         </form>
-        <button onclick="onClick()" ontouchend="onClick()">Submit!</button>
-        <p>Smaller resolution == Faster result</p>
-        <p id="status">All additional options takes 9x time each...</p>
+        <button id="submit" onclick="onClick()" ontouchend="onClick()">Submit!</button>
+        <p style="color:red">All checkbox options takes 9x time each...</p>
+        <p id="status"></p>
         <img src="" alt="" id="image" height="70%">
         <script>
             var ws = null;
+            var processStartTime = null;
+            
+            setInterval(function() {
+                var status = document.getElementById("status");
+				if (status.innerHTML.startsWith("Processing")) {
+                    if(processStartTime === null)
+                        processStartTime = moment();
+                    status.innerHTML = "Processing image... (" + moment().diff(processStartTime, 'seconds') + "s)";
+                }
+                
+                var eta = 15;
+                if(document.getElementById("sceneNo").value === "2")
+                    eta = 50;
+                eta *= document.getElementById("resolution").value / 100.0;
+                if(document.getElementById("areaLight").checked)
+                    eta *= 9;
+                if(document.getElementById("antiAliasing").checked)
+                    eta *= 9;
+                if(document.getElementById("dofToggle").checked)
+                    eta *= 9;
+                document.getElementById("submit").innerHTML = "Submit! (estimated time: " + Math.ceil(eta) + "s)";
+            }, 100);
 
             setInterval(function() {
                 if (ws !== null) ws.send("ping");
-            }, 1000);
+            }, 5000);
 
             function onClick() {
                 if (ws !== null) return;
@@ -54,7 +77,8 @@
                     var message = e.data;
                     if(message === "ping") return;
                     if(message.startsWith("Finished")) {
-                        document.getElementById("status").innerHTML = "";
+                        document.getElementById("status").innerHTML = "Finished in " + moment().diff(processStartTime, 'seconds') + "s.";
+                        processStartTime = null;
                         imageNo = message.split(" ")[1];
                         document.getElementById("image").src = "/raytrace/" + imageNo + ".png";
                         ws.close();
